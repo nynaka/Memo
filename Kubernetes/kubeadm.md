@@ -200,11 +200,5 @@ sudo sysctl -p /etc/sysctl.d/99-bridge-nf-call-iptables
 ## 参考サイト
 
 * [2019年版・Kubernetesクラスタ構築入門](https://knowledge.sakura.ad.jp/20955/)
-
----
-
-## [kubeadmを使用したクラスターの作成](https://kubernetes.io/ja/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
-
-
-
-
+* [kubeadmを使用したクラスターの作成](https://kubernetes.io/ja/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/)
+* [ローカルホストでのKuberntes 環境構築手順](https://www.scsk.jp/lib/product/oss/pdf/oss_27.pdf)
