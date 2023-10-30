@@ -1,6 +1,10 @@
 Kubernetes メモ
 ===
 
+> [!NOTE]
+> * minikube の起動には、CPU が 2 個以上必要です。
+> * 2023/10 現在、minikube は containerd には対応していないらしい。ドライバに Docker や Qemu を使うと、CPU の仮想化支援機能やハイパーバイザを気にせずに使用できそうです。
+
 ## 環境作成
 
 ### [Docker](https://docs.docker.com/engine/install/ubuntu/)
@@ -89,9 +93,19 @@ Kubernetes メモ
 * bash
 
     ```bash
-    kubectl completion bash >> $HOME/.bashrc
+    kubectl completion bash >> $HOME/.bashrc_kuberctl
+    echo 'source $HOME/.bashrc_kuberctl' >> $HOME/.bashrc
     source $HOME/.bashrc
     ```
+
+    * `kubectl tabキー` で `_get_comp_words_by_ref: command not found` が出る
+
+        Bash の自動補完パッケージが足りないので、追加すれば解消します。  
+        自動補完パッケージインストール後、再ログインすると有効になります。
+
+        ```bash
+        sudo apt install -y bash-completion
+        ```
 
 ### minikube
 
@@ -105,11 +119,7 @@ Kubernetes メモ
     ```
 
 
-## Hands-on
-
-> [!WARNING]
-> minikube の起動には、CPU が 2 個以上必要です。
-
+## 動作確認
 
 ### [Hello Minikube](https://kubernetes.io/ja/docs/tutorials/hello-minikube/)
 
