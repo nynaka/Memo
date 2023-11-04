@@ -52,12 +52,23 @@ Kubernetes 環境設定・ツールのインストール
 
         * リポジトリの追加
 
-            ```bash
-            echo \
-                "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-                "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-                sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-            ```
+            * Debian Linux
+
+                ```bash
+                echo \
+                    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+                    "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+                    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                ```
+
+            * Ubuntu Linux
+
+                ```bash
+                echo \
+                    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+                    "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+                    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+                ```
 
         * Docker のインストール
 
@@ -129,6 +140,114 @@ sudo sysctl -p /etc/sysctl.d/99-bridge-nf-call-iptables
         sudo apt-get install -y kubelet kubeadm kubectl
         sudo apt-mark hold kubelet kubeadm kubectl
         ```
+
+
+## Kubernets 環境の初期化
+
+1. コントロールプレーンノードの初期化
+
+    コントロールプレーンノードの初期化は kubeadm init で実行します。  
+    また、何らかの理由でコントロールプレーンをリセットしたい場合は、sudo kubeadm reset ⇒ sudo kubeadm init のようにリセットコマンドを実行してください。
+
+    ```bash
+    sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+    ```
+
+    * よくある問題
+
+        下記のエラーが出た場合は containerd を疑ってください。
+
+        ```bash
+        $ sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+        [init] Using Kubernetes version: v1.28.3
+        [preflight] Running pre-flight checks
+        error execution phase preflight: [preflight] Some fatal errors occurred:
+                [ERROR CRI]: container runtime is not running: output: time="2023-11-04T01:19:36Z" level=fatal msg="validate service connection: CRI         v1 runtime API is not implemented for endpoint \"unix:///var/run/containerd/containerd.sock\": rpc error: code = Unimplemented desc =         unknown service runtime.v1.RuntimeService"
+        , error: exit status 1
+        [preflight] If you know what you are doing, you can make a check non-fatal with `--ignore-preflight-errors=...`
+        To see the stack trace of this error execute with --v=5 or higher
+        ```
+
+        * 対応方法 をの 1 (containerd が古い場合)
+
+            containerd ⇒ containerd.io に更新します
+
+            ```bash
+            sudo apt remove containerd
+            sudo mv /etc/containerd/config.toml /etc/containerd/config.toml.bak
+            sudo apt install containerd.io
+            sudo systemctl restart containerd
+            ```
+
+        * 対応方法 をの 2 (元々 containerd.io だった場合)
+
+            ```bash
+            sudo mv /etc/containerd/config.toml /etc/containerd/config.toml.bak
+            sudo systemctl restart containerd
+            ```
+
+            config.toml が原因だった場合、config.toml を元に戻して containerd を再起動すれば同じエラーが再現するようになるはずですが、一度、エラーが発生しない状態になると、config.toml を戻しても、それまでのエラーは発生しなくなるようです。
+
+2. kubeadm の初期設定
+
+    ```bash
+    mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+    ```
+
+3. Calico ネットワークプラグインのインストール
+
+    [Quickstart for Calico on Kubernetes](https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart)
+
+    * インストール
+
+        ```bash
+        kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.3/manifests/tigera-operator.yaml
+        kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.3/manifests/custom-resources.yaml
+        ```
+
+        * よくある問題 (10.0.2.15:6443 の接続に拒否される)
+
+            ```text
+            The connection to the server 10.0.2.15:6443 was refused - did you specify the right host or port?
+            ```
+
+            cgroup のバージョンの問題でこの結果になる説が有力っぽいですが、解決できませんでした。  
+            とりあえず、Ubuntu 22.04 LTS でこの現象が出た場合は、Ubuntu 20.04 LTS にすると解消します。Ubuntu 21.04 あたりで cgroup v1 ⇒ v2 になったことによる影響らしい。。。  
+
+            ちなみに、 Debian Linux 12 の場合は grup の `GRUB_CMDLINE_LINUX_DEFAULT` に `systemd.unified_cgroup_hierarchy=false` を設定して再起動すると解消します。
+
+            * /etc/default/grub
+
+                ```text:/etc/default/grub
+                GRUB_DEFAULT=0
+                GRUB_TIMEOUT=5
+                GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
+                GRUB_CMDLINE_LINUX_DEFAULT="systemd.unified_cgroup_hierarchy=false"    # この行修正
+                GRUB_CMDLINE_LINUX=""
+                ```
+
+            * grup の反映
+
+                ```bash
+                sudo update-grub
+                sudo reboot
+                ```
+
+        * `watch kubectl get pods -n calico-system` を実行して、STATUS が Running になるまでしばらく待つ。 概ね 3 分くらい。
+
+            ```text
+            Every 2.0s: kubectl get pods -n calico-system                                              k8s: Sat Nov  4 02:46:13 2023
+
+            NAME                                      READY   STATUS    RESTARTS   AGE
+            calico-kube-controllers-77bb6497c-pzqbl   1/1     Running   0          2m4s
+            calico-node-97dcw                         1/1     Running   0          2m5s
+            calico-typha-7bd48fccb4-tb9cr             1/1     Running   0          2m5s
+            csi-node-driver-q2xrt                     2/2     Running   0          2m4s
+            ```
+
+
 
 
 ## その他
