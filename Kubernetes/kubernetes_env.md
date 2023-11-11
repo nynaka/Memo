@@ -104,6 +104,7 @@ echo "net.bridge.bridge-nf-call-iptables = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-arptables = 1" | \
     sudo tee /etc/sysctl.d/99-bridge-nf-call-iptables
+
 sudo sysctl -p /etc/sysctl.d/99-bridge-nf-call-iptables 
 ```
 
@@ -141,6 +142,22 @@ sudo sysctl -p /etc/sysctl.d/99-bridge-nf-call-iptables
         sudo apt-mark hold kubelet kubeadm kubectl
         ```
 
+    5. kubectl コマンドの補完
+
+        ```bash
+        kubectl completion bash >> $HOME/.bashrc_kuberctl
+        echo 'source $HOME/.bashrc_kuberctl' >> $HOME/.bashrc
+        source $HOME/.bashrc
+        ```
+
+        * `kubectl tabキー` で 「_get_comp_words_by_ref: command not found」 が出る
+
+            Bash の自動補完パッケージが足りないので、追加すれば解消します。  
+            自動補完パッケージインストール後、再ログインすると有効になります。
+
+            ```bash
+            sudo apt install -y bash-completion
+            ```
 
 ## Kubernets 環境の初期化
 
@@ -247,7 +264,18 @@ sudo sysctl -p /etc/sysctl.d/99-bridge-nf-call-iptables
             csi-node-driver-q2xrt                     2/2     Running   0          2m4s
             ```
 
+4. コントロールプレーンでも Pod を起動したい場合
 
+    1 台の Kubernetes ノードだけで運用しようとすると、Pod の Status が Pending のまま、いつまで待っても起動しない問題が発生します。  
+
+    Kubernetes ではセキュリティ上の観点から、デフォルトでは、コントロールプレーンで Pod は起動しないようになっているそうで、このデフォルト設定を無効にする必要があります。
+
+    ```bash
+    kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+    kubectl taint nodes --all node-role.kubernetes.io/master-
+    ```
+
+    ※ 2 個個目コマンドが成功したところを見たことがないのですが、解説サイトでは上記2コマンドを実行していました。
 
 
 ## その他
