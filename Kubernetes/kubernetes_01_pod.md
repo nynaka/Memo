@@ -9,7 +9,7 @@ Pod の起動
     apiVersion: v1
     kind: Pod
     metadata:
-      name: nginx-yaml
+      name: nginx-01
     spec:
       containers:
         - image: nginx
@@ -31,7 +31,7 @@ Pod の起動
 4. Pod の設定 (未指定項目のデフォルト値含む) および状態確認
 
     ```bash
-    kubectl get pod nginx-yaml -o yaml
+    kubectl get pod nginx-01 -o yaml
     ```
 
 5. Pod の削除
@@ -71,5 +71,5 @@ Pod の起動
 ## Pod 定義用の yaml ファイルの作り方
 
 ```bash
-kubectl run nginx --image=nginx --dry-run -o yaml > nginx-pod.yaml
+kubectl run nginx --image=nginx --dry-run=client -o yaml > nginx-pod.yaml
 ```
