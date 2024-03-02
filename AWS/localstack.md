@@ -6,7 +6,7 @@
 AWS の CLI / API ベースのエミュレータです。マネージメントコンソールはないっぽい。  
 ライセンス料を支払うとエミュレートしてくれる機能が増え、ともすると、AWS 環境無しに AWS サービスを使用したアプリを作成することもできるようです。
 
-## 実行環境準備
+## [インストール](https://docs.localstack.cloud/getting-started/installation/)
 
 公式の Docker コンテナが用意されているので、それを使うと、簡単に環境構築を行えます。
 
@@ -44,6 +44,8 @@ AWS の CLI / API ベースのエミュレータです。マネージメント�
           ENDPOINT_URL: http://localstack:4566
     ```
 
+AWS CLI/SDK がインストールされたクライアント端末を用意しておきます。
+
 * ./_ubuntu/Dockerfile
 
     ```dockerfile
@@ -53,9 +55,7 @@ AWS の CLI / API ベースのエミュレータです。マネージメント�
     # 必要なパッケージのインストール
     RUN apt-get update && \
         DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            locales tzdata sudo zip unzip bzip2 p7zip-full \
-            curl wget jq \
-            vim git \
+            locales tzdata sudo vim git \
             python3 python3-pip \
         && apt-get autoremove -y \
         && apt-get autoclean -y \
@@ -184,6 +184,44 @@ curl http://localstack:4566/_localstack/health | jq
     環境変数 `ENDPOINT_URL` は docker-compose.yml の `environment` で定義しています。
 
 
+* IAM 関連コマンド
+
+    * ユーザ追加
+
+        ```bash
+        aws iam create-user \
+            --user-name testuser \
+            --profile localstack \
+            --endpoint-url $ENDPOINT_URL
+        ```
+
+    * アクセスキーの生成
+
+        ```bash
+        aws iam create-access-key \
+            --user-name testuser \
+            --profile localstack \
+            --endpoint-url $ENDPOINT_URL
+        ```
+
+    * ユーザリストの取得
+
+        ```bash
+        aws iam list-users \
+            --profile localstack \
+            --endpoint-url $ENDPOINT_URL
+        ```
+
+    * 個別ユーザ情報取得
+
+        ```bash
+        aws iam get-user \
+            --user-name testuser \
+            --profile localstack \
+            --endpoint-url $ENDPOINT_URL
+        ```
+
+
 ### [AWS SDK](https://aws.amazon.com/jp/developer/tools/)
 
 * Boto 3 (AWS SDK for Python)
@@ -213,3 +251,4 @@ curl http://localstack:4566/_localstack/health | jq
         Access Key、Secret Access Key は適当でよいのですが、Region は AWS の正しいリージョンコードを設定する必要があるようです。
         
         * [boto3.client の引数](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/core/session.html#boto3.session.Session.client)
+
