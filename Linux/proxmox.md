@@ -31,6 +31,67 @@ Proxmox
     ```
 
 
+### ネスト仮想化の有効化
+
+ハイパーバイザ上の仮想マシンに Intel-VT や AMD-V を見せることを `ネスト仮想化` と呼ぶらしい。
+
+* modprobe の設定
+
+    * Intel-VT
+
+        ```bash
+        echo "options kvm-intel nested=Y" | sudo tee /etc/modprobe.d/kvm-intel.conf
+        ```
+
+    * AMD-V
+
+        ```bash
+        echo "options kvm-amd nested=1" | sudo tee /etc/modprobe.d/kvm-amd.conf
+        ```
+
+* Kernel module を再読み込み
+
+    * Intel-VT
+
+        ```bash
+        sudo modprobe -r kvm_intel
+        sudo modprobe kvm_intel
+        ```
+
+    * AMD-V
+
+        ```bash
+        sudo modprobe -r kvm_amd
+        sudo modprobe kvm_amd
+        ```
+
+* module の設定反映確認
+
+    * Intel-VT
+    
+        ```bash
+        cat /sys/module/kvm_intel/parameters/nested
+        ```
+
+    * AMD-V
+
+        ```bash
+        cat /sys/module/kvm_amd/parameters/nested
+        ```
+
+* 仮想マシンの設定
+
+    CPU の `Type` を `x86-64-v2-AES` 等 ⇒ `host` に変更します。
+
+* 仮想マシンから Intel-VT／AMD-V を利用できることの確認
+
+    ```bash
+    egrep -c '(vmx|svm)' /proc/cpuinfo
+    ```
+
+    上記コマンドを実行すると、仮想マシンに設定した CPU のコアの総数が表示されると思います。
+
+
 ## 一般的な Debian Linux として利用する
 
 ### 基本設定
